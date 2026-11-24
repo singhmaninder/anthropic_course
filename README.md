@@ -2,6 +2,20 @@
 
 A collection of small, practical Python lessons for learning how to use the Anthropic API. Lessons are organized by topic and progress from basic API requests to advanced agent workflows.
 
+This repository is an independent learning project and is not an official Anthropic product.
+
+## Attribution
+
+The course structure and topics draw inspiration from Anthropic and Claude Academy educational resources. The implementation and organization in this repository are original unless otherwise noted.
+
+Anthropic and Claude are trademarks of Anthropic PBC. This project is not affiliated with or endorsed by Anthropic.
+
+## License
+
+The original code in this repository is licensed under the [MIT License](LICENSE).
+
+The MIT License applies to the repository's original code, where indicated. It does not grant rights to third-party trademarks, documentation, course materials, or API content.
+
 ## Requirements
 
 - Python 3.12 or newer
