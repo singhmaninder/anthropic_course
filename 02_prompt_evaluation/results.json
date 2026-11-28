@@ -1,0 +1,65 @@
+[
+  {
+    "output": "import boto3\n\ndef get_prefix_total_size(bucket_name, prefix):\n    s3 = boto3.client(\"s3\")\n    paginator = s3.get_paginator(\"list_objects_v2\")\n    total_size = 0\n    for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):\n        for obj in page.get(\"Contents\", []):\n            total_size += obj[\"Size\"]\n    return total_size",
+    "test_case": {
+      "task": "Write a Python function that takes an S3 bucket name and a prefix, and returns the total size in bytes of all objects under that prefix using boto3 pagination.",
+      "format": "python"
+    },
+    "score": 9.0,
+    "model_score": 8.0,
+    "syntax_score": 10,
+    "strengths": [
+      "Uses the list_objects_v2 paginator, so it correctly handles buckets with more than 1,000 objects.",
+      "Concise and readable. It uses page.get('Contents', []) so empty pages or empty prefixes return 0 without a KeyError.",
+      "Sums the 'Size' field of each object, which is the correct measure of object size in bytes."
+    ],
+    "weaknesses": [
+      "No error handling. Missing buckets, permission errors, or invalid credentials will propagate as raw botocore exceptions with no context.",
+      "The boto3 client is created inside the function on every call. Accepting an optional client parameter or reusing a module-level client would make it more testable and efficient.",
+      "No docstring or type hints, and no note that the total counts only current objects (for versioned buckets, earlier versions are not included)."
+    ],
+    "reasoning": "The solution is correct and idiomatic. It uses the paginator properly, which is the key requirement, and handles empty results safely with page.get('Contents', []). The sum of 'Size' gives the byte total as requested. The weaknesses are about production polish rather than correctness: there is no error handling, the client is not injectable for testing, and the docstring is missing. These are minor for a short utility function."
+  },
+  {
+    "output": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Sid\": \"AllowReadOnlyAccessToAnalyticsReports\",\n      \"Effect\": \"Allow\",\n      \"Action\": [\n        \"s3:GetObject\",\n        \"s3:ListBucket\"\n      ],\n      \"Resource\": [\n        \"arn:aws:s3:::analytics-reports\",\n        \"arn:aws:s3:::analytics-reports/*\"\n      ]\n    },\n    {\n      \"Sid\": \"DenyDeleteObjectOnAnalyticsReports\",\n      \"Effect\": \"Deny\",\n      \"Action\": \"s3:DeleteObject\",\n      \"Resource\": [\n        \"arn:aws:s3:::analytics-reports\",\n        \"arn:aws:s3:::analytics-reports/*\"\n      ]\n    }\n  ]\n}",
+    "test_case": {
+      "task": "Create a JSON IAM policy document that allows read-only access (s3:GetObject and s3:ListBucket) to a single S3 bucket named 'analytics-reports' and denies any s3:DeleteObject actions on that bucket.",
+      "format": "json"
+    },
+    "score": 8.5,
+    "model_score": 7.0,
+    "syntax_score": 10,
+    "strengths": [
+      "Grants exactly the two requested actions, s3:GetObject and s3:ListBucket, and scopes them to the 'analytics-reports' bucket and its objects.",
+      "Uses the correct resource ARN forms: the bucket ARN for ListBucket and the bucket/* ARN for GetObject.",
+      "The explicit Deny on s3:DeleteObject overrides any Allow granted elsewhere, so the delete restriction holds even if other policies attached to the principal grant delete access."
+    ],
+    "weaknesses": [
+      "The Deny covers only s3:DeleteObject. On a versioned bucket, permanent deletion of specific versions uses s3:DeleteObjectVersion, which is not blocked, so the protection has a gap.",
+      "Listing 'arn:aws:s3:::analytics-reports/*' under the ListBucket statement is unnecessary, since ListBucket applies to the bucket ARN only. It is harmless but shows imprecision.",
+      "The policy does not address s3:GetObjectVersion for versioned buckets, and it includes no conditions (such as restricting by source or MFA) that could strengthen the controls."
+    ],
+    "reasoning": "The policy meets the core requirements. The Allow statement correctly grants s3:GetObject and s3:ListBucket on the bucket and its objects, and the Deny statement blocks s3:DeleteObject on the same resources. Because an explicit Deny takes precedence in IAM evaluation, the delete restriction is enforced even when other policies grant broader permissions. The main shortcomings are the omission of s3:DeleteObjectVersion from the Deny, which matters for versioned buckets, and the superfluous /* resource on ListBucket. Adding GetObjectVersion to the read permissions and tightening the Deny would make the policy more robust. The core logic is sound and syntactically valid."
+  },
+  {
+    "output": "^arn:aws:iam::(\\d{12}):role/([\\w+=,.@-]+)$",
+    "test_case": {
+      "task": "Write a regex that matches valid AWS ARNs for IAM roles in the format arn:aws:iam::<12-digit-account-id>:role/<role-name>, capturing the account ID and role name as groups.",
+      "format": "regex"
+    },
+    "score": 8.5,
+    "model_score": 7.0,
+    "syntax_score": 10,
+    "strengths": [
+      "Anchors with ^ and $, so partial or extra text cannot match.",
+      "Correctly enforces exactly 12 digits for the account ID and captures it with the role name in separate groups, as the task requires.",
+      "The role-name character class [\\w+=,.@-] matches the characters AWS allows for IAM role names."
+    ],
+    "weaknesses": [
+      "Does not support role paths. Real IAM ARNs can be arn:aws:iam::123456789012:role/path/to/name, but the slash is not in the character class, so these valid ARNs fail to match.",
+      "Does not enforce the 64-character maximum for role names, so overlong names still match.",
+      "\\w and \\d can match non-ASCII characters in some engines (e.g., Python str patterns), which is looser than AWS's actual rules."
+    ],
+    "reasoning": "The regex meets the core requirements: it anchors the full string, validates a 12-digit account ID, requires the literal role/ prefix, and captures both the account ID and role name. The character class follows AWS's allowed role-name characters. The main gaps are that it rejects valid role paths containing slashes, which real-world ARNs commonly use, and it does not enforce the 64-character limit. Because the task specified the simpler <role-name> format, the path omission is a moderate rather than severe flaw. Tightening the character set to ASCII and adding a length bound would improve precision."
+  }
+]

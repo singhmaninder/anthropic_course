@@ -85,7 +85,8 @@ Example output:
 ```json
 [
   {{
-    "task": "Description of task"
+    "task": "Description of task",
+    "format": "python" | "json" | "regex"
   }}
 ]
 ```
